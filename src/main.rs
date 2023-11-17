@@ -53,6 +53,7 @@ impl Autobright {
 #[tokio::main]
 async fn main() {
     let exec = tokio::runtime::Runtime::new().unwrap();
+
     exec.spawn(async {
         gtk::init().unwrap();
         let tray_menu = Menu::new();
@@ -85,20 +86,14 @@ async fn main() {
     drop(cfg_file);
     drop(cfg);
 
-
-    exec.spawn(async {
-
-        let connection = Connection::session().await.expect("no message bus");
-        connection
-            .object_server()
-            .at("/org/oceania/Autobright", Autobright)
-            .await.expect("no");
-        connection
-            .request_name("org.oceania.Autobright")
-            .await.expect("no");
-        loop {}
-    });
-
+    let connection = Connection::session().await.expect("no message bus");
+    connection
+        .object_server()
+        .at("/org/oceania/Autobright", Autobright)
+        .await.expect("no");
+    connection
+        .request_name("org.oceania.Autobright")
+        .await.expect("no");
 
     loop {
         let offset = unsafe {
