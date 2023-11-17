@@ -1,4 +1,4 @@
-use std::{env, fs, thread};
+use std::{env, fs};
 use std::process::Command;
 use std::time::Duration;
 use serde_derive::{Deserialize, Serialize};
