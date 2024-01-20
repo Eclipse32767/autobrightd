@@ -9,28 +9,28 @@ use tray_item::{TrayItem, IconSource};
 use std::sync::RwLock;
 
 fn get_home() -> String {
-    match env::var("XDG_CONFIG_HOME") {
+    match env::var("XDG_CONFIG_HOME").or_else(|_| env::var("HOME")) {
         Ok(var) => var,
-        Err(..) => match env::var("HOME") {
-            Ok(var) => format!("{var}/.config"),
-            Err(..) => panic!("Failed to find config directory, make sure XDG_CONFIG_HOME or HOME are set")
-        }
+        Err(..) => panic!("Failed to find config directory, make sure XDG_CONFIG_HOME or HOME are set")
     }
 }
+
 #[derive(Serialize, Deserialize)]
 struct Config {
     default_offset: Option<i32>,
-    interval: Option<u64>,
+    interval: Option<u32>,
     divide: Option<i32>,
     sensor: String,
     displays: Vec<Display>,
     minimum: Option<u32>,
     maximum: Option<u32>,
 }
+
 #[derive(Serialize, Deserialize, Clone)]
 struct Display {
     cmd: String,
 }
+
 static OFFSET: RwLock<i32> = RwLock::new(0);
 
 #[derive(Clone)]
@@ -45,6 +45,7 @@ impl Autobright {
         brightness_notify();
         format!("Ok")
     }
+
     fn decrease(&mut self, value: i32) -> String {
         let mut offset = OFFSET.write().unwrap();
         *offset -= value;
@@ -53,6 +54,7 @@ impl Autobright {
         format!("Ok")
     }
 }
+
 fn brightness_notify() {
     let offset = OFFSET.read().unwrap();
     Command::new("notify-send").arg("--app-name=Autobrightd").arg(format!("Brightness Offset is: {}", offset).as_str()).spawn();
@@ -114,27 +116,12 @@ async fn main() {
 
     let cfg_file = fs::read_to_string(format!("{}/Oceania/autobright.toml", get_home())).unwrap();
     let cfg: Config = toml::from_str(cfg_file.as_str()).unwrap();
-    let interval = match cfg.interval {
-        Some(value) => value,
-        None => 5,
-    };
+    let interval = cfg.interval.unwrap_or(5);
     let mut offset = OFFSET.write().unwrap();
-    *offset = match cfg.default_offset {
-        Some(value) => value,
-        None => 0,
-    };
-    let divide = match cfg.divide {
-        Some(val) => val,
-        None => 1,
-    };
-    let minimum = match cfg.minimum {
-        Some(val) => val as i32,
-        None => 0
-    };
-    let maximum = match cfg.maximum {
-        Some(val) => val as i32,
-        None => 100,
-    };
+    *offset = cfg.default_offset.unwrap_or(0);
+    let divide = cfg.divide.unwrap_or(1);
+    let minimum = cfg.minimum.unwrap_or(0) as i32;
+    let maximum = cfg.maximum.unwrap_or(100) as i32;
     let sensor = cfg.sensor.clone();
     let mut display_out_old = 0;
     let displays = cfg.displays.clone();
