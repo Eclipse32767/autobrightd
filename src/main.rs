@@ -18,7 +18,7 @@ fn get_home() -> String {
 #[derive(Serialize, Deserialize)]
 struct Config {
     default_offset: Option<i32>,
-    interval: Option<u32>,
+    interval: Option<u64>,
     divide: Option<i32>,
     sensor: String,
     displays: Vec<Display>,
